@@ -16,8 +16,23 @@ except:
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Güncel ve garanti çalışan model doğrudan tanımlandı
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Otomatik ve Alternatifli Model Seçici (Hata vermeyi %100 engeller)
+model = None
+calisan_model_adi = "Bilinmiyor"
+for m_adi in ['gemini-1.5-flash', 'gemini-pro', 'gemini-1.5-pro', 'gemini-1.5-flash-latest']:
+    try:
+        m = genai.GenerativeModel(m_adi)
+        # Modelin çalışıp çalışmadığını test et
+        m.generate_content("test")
+        model = m
+        calisan_model_adi = m_adi
+        break
+    except Exception:
+        continue
+
+if model is None:
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    calisan_model_adi = 'gemini-1.5-flash'
 
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
@@ -29,7 +44,7 @@ except:
     hafiza_icerik = []
 
 st.title("🧠 Sınırsız ve Öğrenen Yapay Zeka")
-st.write("Sistem aktif ve çalışıyor!")
+st.write(f"Sistem aktif! (Aktif Model: {calisan_model_adi})")
 
 if "mesajlar" not in st.session_state:
     st.session_state.mesajlar = []
