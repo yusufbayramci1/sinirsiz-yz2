@@ -1,23 +1,21 @@
 import streamlit as st
 import json
-from google import genai
+from groq import Groq
 from github import Github
 import re
 
 st.set_page_config(page_title="Sınırsız YZ", page_icon="🧠", layout="centered")
 
 try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
     GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
     REPO_NAME = st.secrets["REPO_NAME"] 
 except:
-    st.error("⚠️ Streamlit Secrets ayarlarını kontrol edin.")
+    st.error("⚠️ Streamlit Secrets ayarlarına GROQ_API_KEY ekleyin.")
     st.stop()
 
-client = genai.Client(api_key=GEMINI_API_KEY)
-
-# Garanti ve güncel model doğrudan sabitlendi
-secilen_model = 'gemini-2.0-flash'
+client = Groq(api_key=GROQ_API_KEY)
+model_adi = "llama-3.3-70b-versatile"
 
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
@@ -28,8 +26,8 @@ try:
 except:
     hafiza_icerik = []
 
-st.title("🧠 Sınırsız ve Öğrenen Yapay Zeka")
-st.write(f"Sistem aktif! (Model: {secilen_model})")
+st.title("🧠 Sınırsız ve Hızlı Yapay Zeka")
+st.write("Sistem Groq altyapısıyla aktif ve sınırsız!")
 
 if "mesajlar" not in st.session_state:
     st.session_state.mesajlar = []
@@ -60,11 +58,16 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
             try:
-                response = client.models.generate_content(
-                    model=secilen_model,
-                    contents=sistem_mesaji + f"\nKullanıcı: {user_input}",
+                completion = client.chat.completions.create(
+                    model=model_adi,
+                    messages=[
+                        {"role": "system", "content": sistem_mesaji},
+                        {"role": "user", "content": user_input}
+                    ],
+                    temperature=0.7,
                 )
-                metin = response.text
+                
+                metin = completion.choices[0].message.content
                 metin = re.sub(r'```json\n?', '', metin)
                 metin = re.sub(r'```\n?', '', metin)
                 
