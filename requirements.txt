@@ -1,4 +1,5 @@
 streamlit
-groq
 PyGithub
 duckduckgo-search
+beautifulsoup4
+requests
