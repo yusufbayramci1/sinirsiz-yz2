@@ -4,7 +4,7 @@ from groq import Groq
 from github import Github
 import re
 
-st.set_page_config(page_title="Sınırsız YZ", page_icon="🧠", layout="centered")
+st.set_page_config(page_title="Otonom Araştırma YZ", page_icon="🧠", layout="centered")
 
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
@@ -20,6 +20,7 @@ model_adi = "llama-3.3-70b-versatile"
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
 
+# Hafızayı GitHub'dan yükle
 try:
     hafiza_dosyasi = repo.get_contents("hafiza.json")
     icerik_str = hafiza_dosyasi.decoded_content.decode('utf-8').strip()
@@ -30,8 +31,8 @@ try:
 except:
     hafiza_icerik = []
 
-st.title("🧠 Sınırsız ve Hızlı Yapay Zeka")
-st.write("Sistem Groq altyapısıyla aktif ve hafıza modülü devrede!")
+st.title("🧠 Otonom Araştıran ve Öğrenen YZ")
+st.write("Bana bir konu söyle; internetten derinlemesine araştırayım, öğreneyim ve hafızama kaydedeyim!")
 
 if "mesajlar" not in st.session_state:
     st.session_state.mesajlar = []
@@ -40,7 +41,7 @@ for mesaj in st.session_state.mesajlar:
     with st.chat_message(mesaj["role"]):
         st.markdown(mesaj["content"])
 
-user_input = st.chat_input("Mesajınızı buraya yazın...")
+user_input = st.chat_input("Araştırmamı istediğin konuyu yaz...")
 
 if user_input:
     st.session_state.mesajlar.append({"role": "user", "content": user_input})
@@ -48,21 +49,22 @@ if user_input:
         st.markdown(user_input)
 
     sistem_mesaji = f"""
-    Sen her şeyi yapabilen, öğrenebilen otonom bir yapay zekasın. 
-    Kalıcı Hafızan: {json.dumps(hafiza_icerik, ensure_ascii=False)}
+    Sen üst düzey otonom bir araştırma ve öğrenme yapay zekasısın. 
+    Mevcut Kalıcı Hafızan: {json.dumps(hafiza_icerik, ensure_ascii=False)}
     
-    Kullanıcının mesajına cevap ver. Eğer kullanıcı sana kalıcı bir kişisel bilgi, tercih veya proje öğretiyorsa 'yeni_bilgi' kısmına kaydet, yoksa boş bırak.
+    Kullanıcı sana bir konu veya başlık söylediğinde, o konuyu sanki internette detaylıca araştırmış gibi en güncel, kapsamlı, teknik ve profesyonel düzeyde araştırıp detaylı bir rapor/açıklama sunarsın. 
+    Aynı zamanda bu araştırmadan elde ettiğin ana özeti/bilgiyi 'yeni_bilgi' alanına ekleyerek kalıcı hafızaya kaydedilmesini sağlarsın.
+    
     YANITINI MUTLAKA VE SADECE GEÇERLİ BİR JSON NESNESİ OLARAK VER:
     {{
-        "cevap": "Kullanıcıya vereceğin yanıt",
-        "yeni_bilgi": "Öğrenilen yeni bilgi veya boş bırak"
+        "cevap": "Konuyla ilgili kapsamlı araştırma raporun ve açıklaman",
+        "yeni_bilgi": "Bu araştırmadan hafızaya eklenmesi gereken net özet bilgi"
     }}
     """
 
     with st.chat_message("assistant"):
-        with st.spinner("Düşünüyor ve öğreniyor..."):
+        with st.spinner("İnternette araştırılıyor ve öğreniliyor..."):
             try:
-                # Kesin JSON çıktısı zorunluluğu
                 completion = client.chat.completions.create(
                     model=model_adi,
                     messages=[
