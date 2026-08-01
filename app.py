@@ -16,7 +16,7 @@ except:
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Hata vermeyen otomatik model seçici (Sistemde aktif olan ilk modeli seçer)
+# Otomatik model seçici
 def uygun_modeli_bul():
     for m in genai.list_models():
         if 'generateContent' in m.supported_generation_methods:
@@ -67,8 +67,6 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
             try:
-                sohbet_gecmisi = [{"role": "user", "parts": [sistem_mesaji, user_input]}
-                
                 cevap_raw = model.generate_content(sistem_mesaji + f"\nKullanıcı: {user_input}")
                 metin = cevap_raw.text
                 metin = re.sub(r'```json\n?', '', metin)
