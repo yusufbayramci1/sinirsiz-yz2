@@ -1,3 +1,4 @@
 streamlit
-groq
+scikit-learn
+numpy
 PyGithub
