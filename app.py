@@ -20,9 +20,14 @@ model_adi = "llama-3.3-70b-versatile"
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
 
+# Hafıza yükleme güvenliği (Boş dosya hatalarını engeller)
 try:
     hafiza_dosyasi = repo.get_contents("hafiza.json")
-    hafiza_icerik = json.loads(hafiza_dosyasi.decoded_content.decode('utf-8'))
+    icerik_str = hafiza_dosyasi.decoded_content.decode('utf-8').strip()
+    if icerik_str == "":
+        hafiza_icerik = []
+    else:
+        hafiza_icerik = json.loads(icerik_str)
 except:
     hafiza_icerik = []
 
@@ -67,25 +72,43 @@ if user_input:
                     temperature=0.7,
                 )
                 
-                metin = completion.choices[0].message.content
-                metin = re.sub(r'```json\n?', '', metin)
-                metin = re.sub(r'```\n?', '', metin)
+                metin = completion.choices[0].message.content.strip()
                 
-                sonuc = json.loads(metin.strip())
-                yz_cevabi = sonuc.get("cevap", "Yanıt alınamadı.")
-                yeni_ogrenilen = sonuc.get("yeni_bilgi", "")
+                # Güvenli JSON ve Metin Çözümleme
+                try:
+                    temiz_metin = re.sub(r'```json\n?', '', metin)
+                    temiz_metin = re.sub(r'```\n?', '', temiz_metin).strip()
+                    match = re.search(r'\{.*\}', temiz_metin, re.DOTALL)
+                    if match:
+                        sonuc = json.loads(match.group(0))
+                    else:
+                        sonuc = json.loads(temiz_metin)
+                        
+                    yz_cevabi = sonuc.get("cevap", metin)
+                    yeni_ogrenilen = sonuc.get("yeni_bilgi", "")
+                except:
+                    # Model tam JSON vermezse tüm metni doğrudan cevap olarak al
+                    yz_cevabi = metin
+                    yeni_ogrenilen = ""
 
                 st.markdown(yz_cevabi)
                 st.session_state.mesajlar.append({"role": "assistant", "content": yz_cevabi})
 
                 if yeni_ogrenilen and str(yeni_ogrenilen).strip() != "":
                     hafiza_icerik.append(yeni_ogrenilen)
-                    repo.update_file(
-                        hafiza_dosyasi.path,
-                        "Hafıza güncellendi",
-                        json.dumps(hafiza_icerik, ensure_ascii=False, indent=2),
-                        hafiza_dosyasi.sha
-                    )
+                    try:
+                        repo.update_file(
+                            hafiza_dosyasi.path,
+                            "Hafıza güncellendi",
+                            json.dumps(hafiza_icerik, ensure_ascii=False, indent=2),
+                            hafiza_dosyasi.sha
+                        )
+                    except:
+                        repo.create_file(
+                            "hafiza.json",
+                            "Hafıza dosyası oluşturuldu",
+                            json.dumps(hafiza_icerik, ensure_ascii=False, indent=2)
+                        )
                     st.success(f"💾 Hafızaya kaydedildi: {yeni_ogrenilen}")
             except Exception as e:
                 st.error(f"Hata: {e}")
