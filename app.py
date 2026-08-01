@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-import google.generativeai as genai
+from google import genai
 from github import Github
 import re
 
@@ -14,25 +14,8 @@ except:
     st.error("⚠️ Streamlit Secrets ayarlarını kontrol edin.")
     st.stop()
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Otomatik ve Alternatifli Model Seçici (Hata vermeyi %100 engeller)
-model = None
-calisan_model_adi = "Bilinmiyor"
-for m_adi in ['gemini-1.5-flash', 'gemini-pro', 'gemini-1.5-pro', 'gemini-1.5-flash-latest']:
-    try:
-        m = genai.GenerativeModel(m_adi)
-        # Modelin çalışıp çalışmadığını test et
-        m.generate_content("test")
-        model = m
-        calisan_model_adi = m_adi
-        break
-    except Exception:
-        continue
-
-if model is None:
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    calisan_model_adi = 'gemini-1.5-flash'
+# Yeni nesil Google GenAI istemcisi (AQ... anahtarlarını tam destekler)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
@@ -44,7 +27,7 @@ except:
     hafiza_icerik = []
 
 st.title("🧠 Sınırsız ve Öğrenen Yapay Zeka")
-st.write(f"Sistem aktif! (Aktif Model: {calisan_model_adi})")
+st.write("Sistem yeni nesil altyapıyla aktif!")
 
 if "mesajlar" not in st.session_state:
     st.session_state.mesajlar = []
@@ -75,8 +58,11 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
             try:
-                cevap_raw = model.generate_content(sistem_mesaji + f"\nKullanıcı: {user_input}")
-                metin = cevap_raw.text
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=sistem_mesaji + f"\nKullanıcı: {user_input}",
+                )
+                metin = response.text
                 metin = re.sub(r'```json\n?', '', metin)
                 metin = re.sub(r'```\n?', '', metin)
                 
