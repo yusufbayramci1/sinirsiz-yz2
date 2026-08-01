@@ -14,8 +14,19 @@ except:
     st.error("⚠️ Streamlit Secrets ayarlarını kontrol edin.")
     st.stop()
 
-# Yeni nesil Google GenAI istemcisi (AQ... anahtarlarını tam destekler)
 client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Otomatik model bulucu: Hesabında çalışan aktif modeli kendisi seçer, hata vermesini engeller
+def aktif_modeli_bul():
+    try:
+        for m in client.models.list():
+            if m.supported_actions and "generateContent" in m.supported_actions:
+                return m.name
+    except Exception:
+        pass
+    return 'gemini-2.0-flash'
+
+secilen_model = aktif_modeli_bul()
 
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
@@ -27,7 +38,7 @@ except:
     hafiza_icerik = []
 
 st.title("🧠 Sınırsız ve Öğrenen Yapay Zeka")
-st.write("Sistem yeni nesil altyapıyla aktif!")
+st.write(f"Sistem aktif! (Kullanılan Model: {secilen_model})")
 
 if "mesajlar" not in st.session_state:
     st.session_state.mesajlar = []
@@ -59,7 +70,7 @@ if user_input:
         with st.spinner("Düşünüyor..."):
             try:
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model=secilen_model,
                     contents=sistem_mesaji + f"\nKullanıcı: {user_input}",
                 )
                 metin = response.text
@@ -73,7 +84,7 @@ if user_input:
                 st.markdown(yz_cevabi)
                 st.session_state.mesajlar.append({"role": "assistant", "content": yz_cevabi})
 
-                if yeni_ogrenilen and yeni_ogrenilen.strip() != "":
+                if yeni_ogrenilen and str(yeni_ogrenilen).strip() != "":
                     hafiza_icerik.append(yeni_ogrenilen)
                     repo.update_file(
                         hafiza_dosyasi.path,
