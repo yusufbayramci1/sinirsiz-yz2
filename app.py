@@ -20,11 +20,11 @@ model_adi = "llama-3.3-70b-versatile"
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
 
-# Hafızayı GitHub'dan yükle
+# Hafızayı GitHub'dan güvenli bir şekilde yükle
 try:
     hafiza_dosyasi = repo.get_contents("hafiza.json")
     icerik_str = hafiza_dosyasi.decoded_content.decode('utf-8').strip()
-    if icerik_str == "":
+    if icerik_str == "" or icerik_str == "[]":
         hafiza_icerik = []
     else:
         hafiza_icerik = json.loads(icerik_str)
@@ -32,7 +32,7 @@ except:
     hafiza_icerik = []
 
 st.title("🧠 Otonom Araştıran ve Öğrenen YZ")
-st.write("Bana bir konu söyle; internetten derinlemesine araştırayım, öğreneyim ve hafızama kaydedeyim!")
+st.write("Konuyu araştırır, hafızaya alır ve doğrudan GitHub'a kaydeder!")
 
 if "mesajlar" not in st.session_state:
     st.session_state.mesajlar = []
@@ -49,21 +49,21 @@ if user_input:
         st.markdown(user_input)
 
     sistem_mesaji = f"""
-    Sen üst düzey otonom bir araştırma ve öğrenme yapay zekasısın. 
+    Sen üst düzey otonom bir araştırma ve öğrenme yapay zekasın. 
     Mevcut Kalıcı Hafızan: {json.dumps(hafiza_icerik, ensure_ascii=False)}
     
-    Kullanıcı sana bir konu veya başlık söylediğinde, o konuyu sanki internette detaylıca araştırmış gibi en güncel, kapsamlı, teknik ve profesyonel düzeyde araştırıp detaylı bir rapor/açıklama sunarsın. 
-    Aynı zamanda bu araştırmadan elde ettiğin ana özeti/bilgiyi 'yeni_bilgi' alanına ekleyerek kalıcı hafızaya kaydedilmesini sağlarsın.
+    Kullanıcı sana bir konu söylediğinde o konuyu internette araştırmış gibi derinlemesine açıkla.
+    Yeni öğrendiğin net bilgiyi 'yeni_bilgi' alanına ekle.
     
     YANITINI MUTLAKA VE SADECE GEÇERLİ BİR JSON NESNESİ OLARAK VER:
     {{
-        "cevap": "Konuyla ilgili kapsamlı araştırma raporun ve açıklaman",
-        "yeni_bilgi": "Bu araştırmadan hafızaya eklenmesi gereken net özet bilgi"
+        "cevap": "Araştırma raporun ve açıklaman",
+        "yeni_bilgi": "Hafızaya eklenecek yeni bilgi"
     }}
     """
 
     with st.chat_message("assistant"):
-        with st.spinner("İnternette araştırılıyor ve öğreniliyor..."):
+        with st.spinner("Araştırılıyor ve GitHub'a kaydediliyor..."):
             try:
                 completion = client.chat.completions.create(
                     model=model_adi,
@@ -86,19 +86,24 @@ if user_input:
 
                 if yeni_ogrenilen and str(yeni_ogrenilen).strip() != "":
                     hafiza_icerik.append(yeni_ogrenilen)
+                    yeni_json_veri = json.dumps(hafiza_icerik, ensure_ascii=False, indent=2)
+                    
+                    # GitHub'a kesin ve hatasız yazma garantisi
                     try:
+                        guncel_dosya = repo.get_contents("hafiza.json")
                         repo.update_file(
-                            hafiza_dosyasi.path,
+                            guncel_dosya.path,
                             "Hafıza güncellendi",
-                            json.dumps(hafiza_icerik, ensure_ascii=False, indent=2),
-                            hafiza_dosyasi.sha
+                            yeni_json_veri,
+                            guncel_dosya.sha
                         )
+                        st.success(f"💾 GitHub hafızasına başarıyla kaydedildi: {yeni_ogrenilen}")
                     except:
                         repo.create_file(
                             "hafiza.json",
                             "Hafıza dosyası oluşturuldu",
-                            json.dumps(hafiza_icerik, ensure_ascii=False, indent=2)
+                            yeni_json_veri
                         )
-                    st.success(f"💾 Hafızaya kaydedildi: {yeni_ogrenilen}")
+                        st.success(f"💾 GitHub hafızası oluşturuldu ve kaydedildi: {yeni_ogrenilen}")
             except Exception as e:
                 st.error(f"Hata: {e}")
