@@ -16,17 +16,8 @@ except:
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# Otomatik model bulucu: Hesabında çalışan aktif modeli kendisi seçer, hata vermesini engeller
-def aktif_modeli_bul():
-    try:
-        for m in client.models.list():
-            if m.supported_actions and "generateContent" in m.supported_actions:
-                return m.name
-    except Exception:
-        pass
-    return 'gemini-2.0-flash'
-
-secilen_model = aktif_modeli_bul()
+# Garanti ve güncel model doğrudan sabitlendi
+secilen_model = 'gemini-2.0-flash'
 
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
@@ -38,7 +29,7 @@ except:
     hafiza_icerik = []
 
 st.title("🧠 Sınırsız ve Öğrenen Yapay Zeka")
-st.write(f"Sistem aktif! (Kullanılan Model: {secilen_model})")
+st.write(f"Sistem aktif! (Model: {secilen_model})")
 
 if "mesajlar" not in st.session_state:
     st.session_state.mesajlar = []
